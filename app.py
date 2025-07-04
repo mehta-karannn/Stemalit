@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from PIL import Image
 import sqlite3
-
+st.set_page_config(page_title="User/Admin App", layout="wide")
 # Connect to SQLite database
 connection = sqlite3.connect('user_data.db')
 cursor = connection.cursor()
@@ -18,6 +18,10 @@ cursor.execute('''
     )
 ''')
 connection.commit()
+
+
+st.sidebar.title('Navigation')
+st.info("👈 Click the arrow in the top-left corner to open the sidebar menu.")
 
 app_mode=st.sidebar.radio("Choose Mode",['User Form','Admin Console'])
 if app_mode=='User Form':
