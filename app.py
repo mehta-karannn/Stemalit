@@ -51,3 +51,15 @@ if names.strip() != "":
         st.info("You must be above 18 to proceed.")
 else:
     st.info('Please enter your name to continue.')
+
+
+
+if names.strip() != "" and st.checkbox("Show my data"):
+    query = "SELECT * FROM users WHERE name = ?"
+    df = pd.read_sql_query(query, connection, params=(names,))
+    
+    if not df.empty:
+        st.subheader("Your Records")
+        st.dataframe(df)
+    else:
+        st.info("No records found for your name.")
