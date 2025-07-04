@@ -10,7 +10,7 @@ st.set_page_config(page_title="User/Admin App", layout="wide")
 connection = sqlite3.connect('user_data.db')
 cursor = connection.cursor()
 
-# Create table if it doesn't exist (includes image_data BLOB)
+# Create table if it doesn't exist
 cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,8 +43,8 @@ if app_mode == 'User Form':
             uploaded_file = st.file_uploader("Upload your Image", type=["png", "jpeg", "jpg"])
 
             if uploaded_file is not None:
-                image_bytes = uploaded_file.read()               # Read bytes first
-                image = Image.open(io.BytesIO(image_bytes))      # Open image from bytes
+                image_bytes = uploaded_file.read()
+                image = Image.open(io.BytesIO(image_bytes))
                 st.image(image, caption="Uploaded Image", use_column_width=True)
 
                 cursor.execute(
@@ -67,28 +67,32 @@ elif app_mode == "Admin Console":
 
     admin_pass = st.text_input("Enter Admin Password", type="password")
 
-    if admin_pass == "admin123":  # Replace with st.secrets in production
+    if admin_pass == "admin123":
         st.success("Access Granted")
 
         df_all = pd.read_sql_query("SELECT * FROM users", connection)
         st.subheader("📋 All Registered Users")
         st.dataframe(df_all)
 
-        # Show user image based on selection
-        selected_user = st.selectbox("Select a user to view their uploaded image:", df_all['name'].tolist())
+        # Show image by selecting unique row (id or timestamp recommended)
+        if not df_all.empty:
+            df_all['user_id'] = df_all['id'].astype(str) + " | " + df_all['name']
+            selected_row = st.selectbox("Select a user entry:", df_all['user_id'].tolist())
 
-        cursor.execute("SELECT image_filename, image_data FROM users WHERE name = ?", (selected_user,))
-        result = cursor.fetchone()
+            selected_id = int(selected_row.split(" | ")[0])
+            cursor.execute("SELECT image_filename, image_data FROM users WHERE id = ?", (selected_id,))
+            result = cursor.fetchone()
 
-        if result and result[1]:
-            image = Image.open(io.BytesIO(result[1]))
-            st.image(image, caption=result[0], use_column_width=True)
+            if result and result[1]:
+                image = Image.open(io.BytesIO(result[1]))
+                st.image(image, caption=result[0], use_column_width=True)
+            else:
+                st.warning("No image available for this user.")
         else:
-            st.warning("No image available for this user.")
+            st.info("No user data found.")
 
-        # Optional: Export
         if st.button("Export as CSV"):
-            df_all.to_csv("all_users.csv", index=False)
+            df_all.drop(columns="image_data").to_csv("all_users.csv", index=False)
             st.success("Data exported as CSV (check project folder).")
 
     elif admin_pass:
