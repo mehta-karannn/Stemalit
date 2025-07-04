@@ -19,47 +19,59 @@ cursor.execute('''
 ''')
 connection.commit()
 
-# Streamlit UI
-st.title("Hello, User!")
+app_mode=st.sidebar.radio("Choose Mode",['User Form','Admin Console'])
+if app_mode=='User Form':
+    # Streamlit UI
+    st.title("Hello, User!")
 
-names = st.text_input('Enter your name:')
+    names = st.text_input('Enter your name:')
 
-if names.strip() != "":
-    st.write(f'Hi {names}')
-    age = st.slider('Enter your age:', 0, 100, 18)
-    st.write(f"Age: {age}")
+    if names.strip() != "":
+        st.write(f'Hi {names}')
+        age = st.slider('Enter your age:', 0, 100, 18)
+        st.write(f"Age: {age}")
 
-    if age > 18:
-        uploaded_file = st.file_uploader("Upload your Image", type=["png", "jpeg", "jpg"])
+        if age > 18:
+            uploaded_file = st.file_uploader("Upload your Image", type=["png", "jpeg", "jpg"])
 
-        if uploaded_file is not None:
-            # Display the image (but don't save it)
-            image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Image", use_column_width=True)
+            if uploaded_file is not None:
+                # Display the image (but don't save it)
+                image = Image.open(uploaded_file)
+                st.image(image, caption="Uploaded Image", use_column_width=True)
 
-            
-            cursor.execute(
-                "INSERT INTO users (name, age, image_filename) VALUES (?, ?, ?)",
-                (names, age, uploaded_file.name)
-            )
-            connection.commit()
+                
+                cursor.execute(
+                    "INSERT INTO users (name, age, image_filename) VALUES (?, ?, ?)",
+                    (names, age, uploaded_file.name)
+                )
+                connection.commit()
 
-            st.success("Your data has been saved!")
+                st.success("Your data has been saved!")
+            else:
+                st.warning("Please upload an image to proceed.")
         else:
-            st.warning("Please upload an image to proceed.")
+            st.info("You must be above 18 to proceed.")
     else:
-        st.info("You must be above 18 to proceed.")
-else:
-    st.info('Please enter your name to continue.')
+        st.info('Please enter your name to continue.')
 
 
+# ---Admin Acess---
+elif app_mode == "Admin Console":
+    st.title("🔐 Admin Console")
 
-if names.strip() != "" and st.checkbox("Show my data"):
-    query = "SELECT * FROM users WHERE name = ?"
-    df = pd.read_sql_query(query, connection, params=(names,))
-    
-    if not df.empty:
-        st.subheader("Your Records")
-        st.dataframe(df)
-    else:
-        st.info("No records found for your name.")
+    admin_pass = st.text_input("Enter Admin Password", type="password")
+
+    if admin_pass == "admin123":  # replace with st.secrets in production
+        st.success("Access Granted")
+
+        df_all = pd.read_sql_query("SELECT * FROM users", connection)
+        st.subheader("📋 All Registered Users")
+        st.dataframe(df_all)
+
+        # Optional: Export
+        if st.button("Export as CSV"):
+            df_all.to_csv("all_users.csv", index=False)
+            st.success("Data exported as CSV (check project folder).")
+
+    elif admin_pass:
+        st.error("❌ Incorrect Password")
